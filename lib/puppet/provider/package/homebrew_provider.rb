@@ -2,8 +2,11 @@ require 'etc'
 require 'puppet/provider/package'
 
 class HomebrewProvider < Puppet::Provider::Package
+  @@brew_binary_config = nil
+  @@brew_shellenv = nil
+
   def self.brew_binary_config
-    return @@brew_binary_config if defined?(@@brew_binary_config)
+    return @@brew_binary_config unless @@brew_binary_config.nil?
     paths = ['/opt/homebrew/bin/brew', '/usr/local/bin/brew']
     paths.each do |path|
       begin
@@ -34,7 +37,8 @@ class HomebrewProvider < Puppet::Provider::Package
   end
 
   def self.brew_shellenv
-    env = {}
+    return @@brew_shellenv unless @@brew_shellenv.nil?
+    @@brew_shellenv = {}
     begin
       output = brew(
         :shellenv,
@@ -44,20 +48,20 @@ class HomebrewProvider < Puppet::Provider::Package
 
       output.each_line do |line|
         if line =~ /export\s+(\w+)=["']?([^"']*)["']?;?$/
-          env[Regexp.last_match(1)] = Regexp.last_match(2)
+          @@brew_shellenv[Regexp.last_match(1)] = Regexp.last_match(2)
         end
       end
     rescue Puppet::ExecutionFailure => e
       Puppet.debug("Failed to run brew shellenv: #{e.message}; falling back to minimal environment")
     end
-    env
+    @@brew_shellenv
   end
 
   def self.brew(cmd, *args, failonfail: true, combine: true, merge_brew_env: true)
     env = { 'HOME' => brew_binary_config[:home] }
 
     if merge_brew_env
-      env = env.merge(@@brew_shellenv ||= brew_shellenv)
+      env = env.merge(brew_shellenv)
     end
 
     with_unbundled_env do
@@ -74,6 +78,12 @@ class HomebrewProvider < Puppet::Provider::Package
             custom_environment: env,
             failonfail: failonfail)
     end
+  end
+
+  def self.post_resource_eval
+    Puppet.debug("#{self} removing global caches at transaction end")
+    @@brew_shellenv = nil
+    @@brew_binary_config = nil
   end
 
   # Shadow instance method with class method to prevent derived classes from skipping this class's

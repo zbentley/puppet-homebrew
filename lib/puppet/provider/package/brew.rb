@@ -58,7 +58,7 @@ Puppet::Type.type(:package).provide(:brew, parent: HomebrewProvider) do
   def self.package_list(*args)
     # Be fail-soft if we're looking for a specific package, but fail hard if we're listing all of them (if that errors,
     # something is wrong with Homebrew):
-    cmd_output = brew(:list, '--versions', *args, failonfail: args.size == 0, combine: false)
+    cmd_output = brew(:list, '--versions', *args, failonfail: args.empty?, combine: false)
 
     re_excludes = Regexp.union([
       /^==>.*/,
@@ -66,7 +66,7 @@ Puppet::Type.type(:package).provide(:brew, parent: HomebrewProvider) do
     ])
     lines = cmd_output.lines.delete_if { |line| line.match(re_excludes) }
 
-    if args.size > 0
+    if not args.empty?
       if lines.empty?
         Puppet.debug("Package #{args[0]} not installed")
         return nil

@@ -54,16 +54,16 @@ Puppet::Type.type(:package).provide(:brewcask, parent: HomebrewProvider) do
   end
 
   def self.package_list(*args)
-    if args.size > 0
+    if args.empty?
+      result = brew(:list, '--cask', '--versions', combine: false)
+    else
       result = brew(:list, '--cask', '--versions', *args, failonfail: false, combine: false)
       Puppet.debug("Package #{args[0]} not installed") if result.empty?
       Puppet.debug("Found package #{result}") unless result.empty?
-    else
-      result = brew(:list, '--cask', '--versions', combine: false)
     end
 
     list = result.lines.map { |line| name_version_split(line) }
-    args.size > 0 ? list.shift : list
+    args.empty? ? list : list.shift
   rescue Puppet::ExecutionFailure => detail
     raise Puppet::Error, "Could not list packages: #{detail}"
   end

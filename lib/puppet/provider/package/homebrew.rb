@@ -77,19 +77,19 @@ Puppet::Type.type(:package).provide(:homebrew, parent: HomebrewProvider) do
     # TODO we should eagerly fetch cask and formula versions and error if a requested package occurs more than once.
     # Be fail-soft if we're looking for a specific package, but fail hard if we're listing all of them (if that errors,
     # something is wrong with Homebrew):
-    result = brew(:list, '--versions', *args, failonfail: args.size == 0, combine: false)
-    if args.size > 0
+    result = brew(:list, '--versions', *args, failonfail: args.empty?, combine: false)
+    if args.empty?
+      result += brew(:list, '--cask', '--versions', combine: false)
+    else
       unless result.include?(args[0])
         result += brew(:list, '--cask', '--versions', *args, failonfail: false, combine: false)
       end
       Puppet.debug("Package #{args[0]} not installed") if result.empty?
       Puppet.debug("Found package #{result}") unless result.empty?
-    else
-      result += brew(:list, '--cask', '--versions', combine: false)
     end
 
     list = result.lines.map { |line| name_version_split(line) }
-    args.size > 0 ? list.shift : list
+    args.empty? ? list : list.shift
   rescue Puppet::ExecutionFailure => detail
     raise Puppet::Error, "Could not list packages: #{detail}"
   end

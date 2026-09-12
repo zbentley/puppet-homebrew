@@ -29,8 +29,9 @@ Puppet::Type.type(:package).provide(:tap, parent: HomebrewProvider) do
     # commands like 'brew tap foo/bar' would result 'brew tap' reporting *either* 'foo/bar' or 'foo/homebrew-bar'.
     # This provider supports the same semantics:
     self.class.instances.each do |inst|
-      normalized = inst.name.gsub(/^([^\/]+)\/(?:homebrew-)?(.+)/, '\1/\2')
-      return inst.properties if [inst.name, normalized].include?(resource_name)
+      instance_name = inst.name.downcase
+      normalized = instance_name.gsub(/^([^\/]+)\/(?:homebrew-)?(.+)/, '\1/\2')
+      return inst.properties if [instance_name, normalized].include?(resource_name.downcase)
     end
     nil
   end
