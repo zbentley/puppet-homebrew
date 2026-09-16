@@ -47,6 +47,7 @@ class homebrew::install {
       exec { "brew-chmod-sys-${brew_sys_chmod_folder}":
         command => "/bin/chmod -R 775 ${brew_sys_chmod_folder}",
         unless  => "/usr/bin/stat -f '%OLp' ${brew_sys_chmod_folder} | /usr/bin/grep -w '775'",
+        require => Exec['install-homebrew'],
         notify  => Exec["set-${brew_sys_chmod_folder}-directory-inherit"],
       }
 
@@ -91,12 +92,14 @@ class homebrew::install {
         exec { "chmod-${brew_folder}":
           command => "/bin/chmod -R 775 ${brew_folder}",
           unless  => "/usr/bin/stat -f '%OLp' '${brew_folder}' | /usr/bin/grep -w '775'",
+          require => Exec['install-homebrew'],
           notify  => Exec["set-${brew_folder}-directory-inherit"],
         }
 
         exec { "chown-${brew_folder}":
           command => "/usr/sbin/chown -R :${homebrew::group} ${brew_folder}",
           unless  => "/usr/bin/stat -f '%Sg' '${brew_folder}' | /usr/bin/grep -w '${homebrew::group}'",
+          require => Exec['install-homebrew'],
         }
 
         exec { "set-${brew_folder}-directory-inherit":
